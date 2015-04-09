@@ -1,0 +1,289 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>POS</title>
+    <script type="text/javascript">
+      var itemPriceMap= new Array();
+        for(var i =0; i<20; i++)
+        {
+        itemPriceMap[i]=new Array(0,0,0,0);// 0:itemname 1:itemPriceWithoutPromotion 2:itemPriceWithDiscount 3:itemPriceWithSecondHalfPromotion(even)
+        
+        }
+       var printInfo= new Array();
+         for(var i =0; i<20; i++)
+        {
+        printInfo[i]=new Array(0,0,0,0);// 0:itemname 1:Qunatity 2:itemPriceWithoutPromotion 3:sumPrice
+        
+        }
+    
+    function update()
+    {
+        if(document.getElementById("File1").value!=""&&document.getElementById("File2").value!=""&&document.getElementById("File3").value!="")
+        {
+            document.getElementById("Text1").value="初始化完成";
+            document.getElementById("Text1").style.color="Green";
+        }
+        
+    }
+    
+ function findItemIndexInitemPriceMap(itemName)
+ {
+    for(var i=0;i<20;i++)
+    {
+    if(itemName==itemPriceMap[i][0])
+    return i;
+    }
+    return -1;
+ 
+ }
+  function findItemIndexInPrintInfo(itemName)
+ {
+    for(var i=0;i<20;i++)
+    {
+    if(itemName==printInfo[i][0])
+    return i;
+    }
+    return -1;
+ 
+ }
+    
+    
+    function printList()
+    {
+    
+        var printValve;
+      
+        /*read itemPrice document*/
+        var fso=new ActiveXObject("Scripting.FileSystemObject");
+        var readItemlist=fso.OpenTextFile(document.getElementById("File1").value);//document.getElementById("File1").value
+        
+        var i=0;
+        var temp=new Array(0,0);
+        var tempLine;
+        while(!readItemlist.AtEndOfStream)//AtEndOfLine
+        {             
+           tempLine=readItemlist.readline();
+            if(tempLine.indexOf(":")&&tempLine!="")
+            {
+
+              temp=tempLine.split(":");
+              itemPriceMap[i][0]=temp[0];
+              itemPriceMap[i][1]=temp[1];
+                i++;
+        
+            }       
+             
+        }  
+   //   document.getElementById("TextArea1").value=i;
+
+        readItemlist.close();
+    //   document.getElementById("Text2").value="调试中1";//printValve;
+
+        /*read discount document*/
+    
+        var readDiscountText=fso.OpenTextFile(document.getElementById("File2").value);
+        var tempIndex;
+
+        while(!readDiscountText.AtEndOfStream)
+        {
+            tempLine=readDiscountText.readline();
+            if(tempLine.indexOf(":"))
+            {
+              temp=tempLine.split(":");
+              tempIndex=findItemIndexInitemPriceMap(temp[0]);
+              itemPriceMap[tempIndex][2]=itemPriceMap[tempIndex][1]*temp[1]/100;
+                
+               
+            }
+        //  document.getElementById("Text2").value=itemPriceMap[1][2];
+         
+        }
+    //   document.getElementById("Text2").value="调试中2";//printValve;
+        /*read SecondHalf document*/
+  
+        var readSecondHalfText=fso.OpenTextFile(document.getElementById("File3").value);
+        while(!readSecondHalfText.AtEndOfStream)
+        {
+
+              tempIndex=findItemIndexInitemPriceMap(readSecondHalfText.readline());
+              if(itemPriceMap[tempIndex][2])
+              itemPriceMap[tempIndex][3]=itemPriceMap[tempIndex][2]*0.75;
+              else
+              itemPriceMap[tempIndex][3]=itemPriceMap[tempIndex][1]*0.75;
+
+           
+        }
+     //    document.getElementById("Text2").value=itemPriceMap[1][3]; 
+       readSecondHalfText.close();
+     //   document.getElementById("Text2").value="调试中3";//printValve;
+        /*read cart document*/
+        var readCartText=fso.OpenTextFile(document.getElementById("File4").value);
+        i=0;
+      
+        while(!readCartText.AtEndOfStream)
+        {
+          
+            tempLine=readCartText.readline();
+    
+            if (tempLine.indexOf('-')!=-1)//有-，数量为temp[1]
+             {
+              temp=tempLine.split('-');
+              tempIndex=findItemIndexInPrintInfo(temp[0]);
+             // document.getElementById("TextArea1").value= temp[1];
+                  if(tempIndex==-1)//PrintInfo里没有这个货物
+                  {
+                      if(i!=0)
+                         {
+                        printInfo[i][0]=temp[0];
+                        printInfo[i][1]=Number(printInfo[i][1])+Number(temp[1]);
+                        i++;
+                          }
+                       else
+                          {
+                        printInfo[0][0]=temp[0];
+                        printInfo[0][1]=Number(temp[1]);
+                        i++;
+                          }
+                 
+                  }
+                  else
+                  {
+                     
+                         printInfo[tempIndex][0]=temp[0];
+                         printInfo[tempIndex][1]=Number(printInfo[tempIndex][1])+Number(temp[1]);
+                         
+                         
+                   
+                   }
+
+             }
+             
+            if(tempLine.indexOf('-')==-1)//没有-，数量为1
+            {
+          
+              if(tempLine!="")
+                {
+                      tempIndex=findItemIndexInPrintInfo(tempLine);
+                      if(tempIndex==-1)//PrintInfo里没有这个货物
+                      {
+                            if(i!=0)
+                              {
+                                printInfo[i][0]=tempLine;
+                                printInfo[i][1]=Number(printInfo[i][1])+1;
+                                i++;
+                              }
+                            else
+                            {
+                                printInfo[0][0]=tempLine;
+                                printInfo[0][1]=1;
+                                i++;
+                              }
+                         
+                      }
+                     else
+                     {
+                   
+                      printInfo[tempIndex][0]=tempLine;
+                      printInfo[tempIndex][1]=Number(printInfo[tempIndex][1])+1;
+
+                      }  
+                    
+                       
+                }
+            } 
+        }
+      //  document.getElementById("TextArea1").value= i;
+  // document.getElementById("TextArea1").value= Number(printInfo[2][1]);
+       readCartText.close();
+        
+      //   document.getElementById("Text2").value="调试中4";//printValve;
+        for(var i=0;i<printInfo.length;i++)
+        {
+        tempIndex=findItemIndexInitemPriceMap(printInfo[i][0]);
+         printInfo[i][2]=itemPriceMap[tempIndex][1];
+         if(itemPriceMap[tempIndex][3]!=0)
+            {
+            if(itemPriceMap[tempIndex][2]!=0)
+            {
+                 if(printInfo[i][1]%2==0)
+                         printInfo[i][3]=printInfo[i][1]*itemPriceMap[tempIndex][3];
+                 else
+                    {
+                         printInfo[i][3]=(printInfo[i][1]-1)*itemPriceMap[tempIndex][3]+itemPriceMap[tempIndex][2];
+                
+                    }
+            }
+            else
+            {
+                 if(printInfo[i][1]%2==0)
+                         printInfo[i][3]=printInfo[i][1]*itemPriceMap[tempIndex][3];
+                 else
+                    {
+                         printInfo[i][3]=(printInfo[i][1]-1)*itemPriceMap[tempIndex][3]+itemPriceMap[tempIndex][1];
+                
+                    }
+            }
+               
+            
+            }
+       if(itemPriceMap[tempIndex][3]==0)
+         printInfo[i][3]=printInfo[i][1]*itemPriceMap[tempIndex][2];
+        
+        }
+        
+       //  document.getElementById("Text2").value="调试中5";//printValve;
+        var totalPriceBefore=0.0;
+        var totalPriceAfter=0.0;
+        for(var i=0;printInfo[i][0]!=0;i++)
+        {
+            totalPriceBefore=totalPriceBefore+printInfo[i][1]*printInfo[i][2];
+            totalPriceAfter=totalPriceAfter+printInfo[i][3];
+       // document.getElementById("TextArea1").value=totalPriceAfter;
+        }
+      //   document.getElementById("Text2").value="调试中6";//printValve;
+        printValve=" 购物明细"+"\t\t"+"（数量"+"\t\t"+"单价"+"\t\t"+"小计）"+"\n";
+        
+        for(var i=0;printInfo[i][0]!=0;i++)
+        {
+        printValve+=printInfo[i][0]+"\t"+printInfo[i][1]+"\t"+printInfo[i][2]+"\t"+printInfo[i][3]+"\n";
+            
+        }
+       
+        printValve+=" 总计金额（优惠前"+"\t"+"优惠后"+"\t"+"优惠差价）"+"\n";
+        printValve+=totalPriceAfter+"\t"+totalPriceBefore+"\t"+totalPriceAfter+"\t"+(totalPriceBefore-totalPriceAfter)+"\n";
+        
+       document.getElementById("TextArea1").value=printValve;
+    }
+    
+
+    
+    
+    </script>
+    
+    
+    
+    
+    
+    
+    
+    
+</head>
+<body >
+<div style="text-align:center">
+<h1 >收银系统（POS）</h1>
+<form name="POS" action="" method="post">
+<p ><input id="Text1" type="text" value="初始化未完成，请初始化以下文档。" style="color:Red;width:300px;border:none"    readonly/></p>
+<p >商品价格文件：<input id="File1" type="file" value="" onchange="update()"/></p>
+<p >打折文件：<input id="File2" type="file" value="" onchange="update()"/></p>
+<p >第二件半价文件：<input id="File3" type="file" value="" onchange="update()"/></p>
+
+<p>------------------------------------------------- </p>
+<p >导入购物单：<input id="File4" type="file" /> <input id="Button1" type="button" value="结算" onclick="printList()"/></p>
+
+<p ><textarea id="TextArea1" cols="1" rows="20" style="width:300px;height:300px"    readonly></textarea></p>
+  
+</form>  
+ </div>   
+</body>
+</html>
